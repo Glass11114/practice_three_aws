@@ -1,213 +1,239 @@
-# Práctica 2: Generación y Estructuración de un Esquema Estrella
 
-**Modelado dimensional con Python, Pandas y NumPy**
+# Práctica 3: Limpieza de Datos Avanzada en Python
 
-## 1. Descripción del proyecto
+Implementación de un proceso de preparación y limpieza de datos utilizando **Python**, el método del **rango intercuartílico (IQR)** y el algoritmo **K-Nearest Neighbors (KNN)** para detectar valores atípicos y estimar valores faltantes.
 
-Esta práctica consiste en simular un conjunto de transacciones de ventas de un sistema operacional (OLTP) y transformarlo en un modelo dimensional de tipo estrella, utilizando Python y la biblioteca Pandas.
+## 1. Objetivo
 
-El proceso permite organizar la información en tres tablas de dimensiones y una tabla de hechos, facilitando el análisis de las transacciones, los productos, los clientes y las fechas de venta.
+Desarrollar un proceso de limpieza de datos que permita:
 
-La ejecución se realiza en una instancia EC2 de AWS con Ubuntu, utilizando un entorno virtual de Python.
+- Identificar valores faltantes en un conjunto de datos.
+- Detectar valores atípicos mediante el método IQR.
+- Sustituir temporalmente los valores atípicos por `NaN`.
+- Aplicar imputación mediante `KNNImputer`.
+- Comparar los resultados de KNN con los métodos de media y mediana.
+- Evaluar diferentes valores de `k`.
+- Generar gráficos comparativos antes y después de la limpieza.
 
-## 2. Objetivo
-
-Desarrollar un proceso de transformación de datos que permita generar 500 transacciones simuladas y estructurarlas en un esquema estrella, mediante la creación de llaves subrogadas, relaciones entre tablas y métricas de ventas.
-
-**Objetivos específicos:**
-
-- Generar datos operativos ficticios utilizando NumPy y Pandas.
-- Identificar atributos descriptivos y construir tablas dimensionales.
-- Generar llaves subrogadas para identificar registros.
-- Relacionar las dimensiones con la tabla de hechos mediante operaciones `merge()`.
-- Calcular el monto total de cada transacción.
-- Incorporar atributos adicionales para enriquecer el análisis temporal.
-- Validar la integridad de los datos transformados.
-
-## 3. Tecnologías utilizadas
+## 2. Tecnologías utilizadas
 
 | Tecnología | Función |
 |---|---|
-| Python 3 | Desarrollo del proceso de transformación |
-| Pandas | Manipulación y estructuración de DataFrames |
-| NumPy | Generación de datos sintéticos |
-| PyYAML | Lectura de parámetros de configuración |
-| AWS EC2 | Entorno de ejecución del proyecto |
-| Ubuntu | Sistema operativo de la instancia |
-| Git y GitHub | Control de versiones y documentación |
+| Python | Lenguaje de programación |
+| Pandas | Manipulación y análisis de datos |
+| NumPy | Operaciones numéricas y valores `NaN` |
+| Scikit-learn | Imputación KNN y estandarización |
+| SciPy | Biblioteca científica incluida en el entorno |
+| Matplotlib | Generación de gráficos |
+| PyYAML | Lectura de la configuración |
+| AWS EC2 | Entorno de ejecución Ubuntu |
+| Git y GitHub | Control de versiones |
 
-## 4. Estructura del proyecto
+## 3. Estructura del proyecto
 
 ```text
-practicas-aws/
-│
+practica3/
+├── practica3.py
+├── config.example.yaml
+├── requirements.txt
+├── README.md
 ├── .gitignore
-├── practica1/
-│
-└── practica2/
-    ├── practica2.py
-    ├── config.yaml
-    ├── config.example.yaml
-    ├── requirements.txt
-    └── README.md
+└── graficos/
+    ├── comparacion_edad.png
+    └── comparacion_ingreso_mensual.png
 ```
 
-**Descripción de los archivos:**
+El archivo `config.yaml` se genera localmente a partir de `config.example.yaml` y está excluido del repositorio mediante `.gitignore`.
 
-- `practica2.py`: contiene el proceso completo de generación, transformación y validación de datos.
-- `config.yaml`: almacena los parámetros de ejecución y se mantiene fuera del repositorio.
-- `config.example.yaml`: proporciona una plantilla de configuración para reproducir el proyecto.
-- `requirements.txt`: contiene las dependencias necesarias.
-- `README.md`: documenta el desarrollo y funcionamiento de la práctica.
-- `.gitignore`: excluye archivos privados y temporales del control de versiones.
+## 4. Dataset utilizado
 
-## 5. Instalación y ejecución
+Se utiliza un conjunto de datos sintéticos compuesto por 10 registros y tres variables:
 
-### 5.1. Acceder al proyecto
+- `edad`: edad de la persona.
+- `ingreso_mensual`: ingreso mensual registrado.
+- `scoring_credito`: puntuación crediticia.
 
-Desde la terminal de la instancia EC2:
+El dataset contiene cuatro valores faltantes originales y dos valores atípicos:
+
+- Edad de `120` años.
+- Ingreso mensual de `$950,000`.
+
+Estos datos permiten demostrar las etapas de detección, tratamiento e imputación.
+
+## 5. Metodología
+
+### 5.1 Identificación de valores faltantes
+
+Se utiliza `isna().sum()` para contar los valores ausentes en cada columna.
+
+Resultado inicial:
+
+| Variable | Valores faltantes |
+|---|---:|
+| edad | 2 |
+| ingreso_mensual | 2 |
+| scoring_credito | 0 |
+| **Total** | **4** |
+
+### 5.2 Detección de valores atípicos mediante IQR
+
+El rango intercuartílico se calcula mediante:
+
+**IQR = Q3 - Q1**
+
+Los límites de detección son:
+
+- Límite inferior = Q1 - 1.5 × IQR
+- Límite superior = Q3 + 1.5 × IQR
+
+Resultados obtenidos:
+
+| Variable | Q1 | Q3 | IQR | Límite superior |
+|---|---:|---:|---:|---:|
+| edad | 27.25 | 41.25 | 14.00 | 62.25 |
+| ingreso_mensual | 17,250 | 22,750 | 5,500 | 31,000 |
+
+Se identificaron dos valores atípicos, que fueron reemplazados temporalmente por `NaN` para permitir su imputación.
+
+Después de esta etapa, el conjunto de datos contenía seis valores faltantes.
+
+### 5.3 Imputación mediante KNN
+
+Se utiliza `KNNImputer` de Scikit-learn con `n_neighbors=2`.
+
+Antes de la imputación, los datos se estandarizan mediante `StandardScaler` para reducir las diferencias de escala entre variables.
+
+KNN estima los valores faltantes considerando los registros más cercanos según las características disponibles.
+
+Ejemplos de resultados:
+
+| Registro | Variable | Valor original | Valor imputado |
+|---|---|---:|---:|
+| 2 | edad | NaN | 35.0 |
+| 3 | ingreso_mensual | NaN | 21,500 |
+| 5 | edad | 120 | 42.5 |
+| 5 | ingreso_mensual | 950,000 | 20,000 |
+| 8 | edad | NaN | 26.5 |
+| 9 | ingreso_mensual | NaN | 21,500 |
+
+Al finalizar la imputación, no quedaron valores faltantes.
+
+### 5.4 Comparación con media y mediana
+
+Además de KNN, se aplican métodos estadísticos simples para comparar las estimaciones.
+
+Por ejemplo, para el ingreso mensual del registro 5:
+
+| Método | Valor estimado |
+|---|---:|
+| KNN (k=2) | $20,000.00 |
+| Media | $18,857.14 |
+| Mediana | $19,000.00 |
+
+La media y la mediana producen valores generales para cada columna, mientras que KNN considera la similitud entre registros.
+
+No obstante, las estimaciones KNN dependen de las variables disponibles, su escala y el número de vecinos utilizado.
+
+### 5.5 Experimentación con diferentes valores de k
+
+Se compararon los resultados utilizando `k=2`, `k=3` y `k=5`.
+
+Para el registro 5:
+
+| k | Edad imputada | Ingreso imputado |
+|---|---:|---:|
+| 2 | 42.50 | $20,000.00 |
+| 3 | 38.33 | $21,666.67 |
+| 5 | 35.00 | $20,200.00 |
+
+Los resultados muestran que modificar el número de vecinos influye en los valores estimados.
+
+No se puede determinar cuál valor de `k` es más preciso únicamente con esta comparación, ya que no se dispone de los valores reales faltantes.
+
+## 6. Visualización de resultados
+
+Se generan dos gráficos de caja para comparar las distribuciones antes y después del proceso de limpieza.
+
+### Comparación de edades
+
+![Comparación de edades](graficos/comparacion_edad.png)
+
+### Comparación de ingresos mensuales
+
+![Comparación de ingresos mensuales](graficos/comparacion_ingreso_mensual.png)
+
+Los gráficos permiten visualizar la presencia inicial de valores extremos y los cambios posteriores a la limpieza.
+
+## 7. Instalación y ejecución
+
+### Clonar el repositorio
 
 ```bash
-cd ~/practicas-aws/practica2
+git clone https://github.com/Glass11114/practice_three_aws.git
+cd practice_three_aws
 ```
 
-### 5.2. Activar el entorno virtual
+### Crear un entorno virtual
 
 ```bash
-source ~/accessbucket/accessbucket/bin/activate
+python3 -m venv venv
+source venv/bin/activate
 ```
 
-### 5.3. Instalar dependencias
+### Instalar dependencias
 
 ```bash
 python3 -m pip install -r requirements.txt
 ```
 
-### 5.4. Preparar la configuración
-
-Si el archivo `config.yaml` no existe, se puede generar a partir de la plantilla:
+### Crear la configuración local
 
 ```bash
 cp config.example.yaml config.yaml
 ```
 
-Los principales parámetros son:
-
-| Parámetro | Valor |
-|---|---|
-| Semilla aleatoria | 101 |
-| Cantidad de transacciones | 500 |
-| Fecha inicial | 2026-01-01 |
-| Día de la semana | Habilitado |
-| Indicador de fin de semana | Habilitado |
-| Persistencia en base de datos | Deshabilitada |
-
-### 5.5. Ejecutar el programa
+### Ejecutar el programa
 
 ```bash
-python3 practica2.py
+python3 practica3.py
 ```
 
-El programa muestra en la terminal las transacciones generadas, las tablas dimensionales, la tabla de hechos, las validaciones y los indicadores generales de ventas.
+### Consultar los gráficos
 
-## 6. Desarrollo del proceso
-
-### 6.1. Generación de datos operativos (OLTP)
-
-Se utiliza NumPy para simular 500 transacciones de ventas con información de clientes, ciudades, productos, categorías, precios y cantidades.
-
-Cada transacción cuenta con un identificador único y una fecha de registro.
-
-Los datos generados se almacenan inicialmente en el DataFrame `df_operativo`.
-
-### 6.2. Construcción de Dim_Cliente
-
-Se seleccionan los atributos `cliente_nombre` y `cliente_ciudad`.
-
-Mediante `drop_duplicates()` se eliminan las combinaciones repetidas y se genera `id_cliente_sk` como llave subrogada.
-
-El resultado contiene **9 combinaciones únicas de cliente y ciudad**.
-
-### 6.3. Construcción de Dim_Producto
-
-Se seleccionan los atributos `producto_nombre`, `categoria_prod` y `precio_unitario`.
-
-Se eliminan las combinaciones duplicadas y se asigna una llave subrogada denominada `id_producto_sk`.
-
-El resultado contiene **27 combinaciones únicas de productos, categorías y precios**.
-
-### 6.4. Construcción de Dim_Tiempo
-
-Se extraen las fechas únicas de las transacciones y se generan los siguientes atributos:
-
-- `id_tiempo_sk`: identificador de fecha con formato AAAAMMDD.
-- `fecha_completa`: fecha de la transacción.
-- `anio`: año.
-- `mes`: mes.
-- `dia`: día del mes.
-- `dia_semana`: nombre del día de la semana.
-- `es_fin_semana`: indicador que identifica sábados y domingos.
-
-El resultado contiene **21 fechas únicas**.
-
-### 6.5. Construcción de Fact_Ventas
-
-Se utilizan operaciones `merge()` para relacionar los registros operativos con las tres dimensiones.
-
-La tabla de hechos contiene los siguientes campos:
-
-| Campo | Descripción |
-|---|---|
-| `id_transaccion` | Identificador único de la venta |
-| `id_cliente_sk` | Referencia a Dim_Cliente |
-| `id_producto_sk` | Referencia a Dim_Producto |
-| `id_tiempo_sk` | Referencia a Dim_Tiempo |
-| `cantidad` | Unidades vendidas |
-| `monto_total` | Importe calculado de la transacción |
-
-El campo `monto_total` se obtiene mediante:
-
-```python
-fact_ventas["monto_total"] = (
-    fact_ventas["cantidad"] * fact_ventas["precio_unitario"]
-)
+```bash
+ls -lh graficos/
 ```
 
-La tabla final conserva los **500 registros originales**.
+## 8. Resultados obtenidos
 
-## 7. Modelo dimensional
+| Indicador | Resultado |
+|---|---:|
+| Registros originales | 10 |
+| Registros finales | 10 |
+| Valores faltantes iniciales | 4 |
+| Valores atípicos detectados | 2 |
+| Valores faltantes después de IQR | 6 |
+| Valores faltantes después de KNN | 0 |
+| Valores de k evaluados | 2, 3 y 5 |
+| Gráficos generados | 2 |
 
-El proyecto implementa un esquema estrella compuesto por una tabla de hechos central y tres dimensiones relacionadas.
+Las validaciones confirmaron que se conservaron los diez registros, no quedaron valores faltantes y los resultados numéricos fueron finitos.
 
-```text
-                  DIM_CLIENTE
-                 id_cliente_sk
-                       |
-                       |
-DIM_PRODUCTO ---- FACT_VENTAS ---- DIM_TIEMPO
-id_producto_sk    id_transaccion   id_tiempo_sk
-                  id_cliente_sk
-                  id_producto_sk
-                  id_tiempo_sk
-                  cantidad
-                  monto_total
-```
+## 9. Limitaciones
 
-Las dimensiones proporcionan el contexto descriptivo, mientras que la tabla de hechos almacena las métricas utilizadas para el análisis de ventas.
+- El dataset contiene únicamente diez registros.
+- Los valores imputados son estimaciones, no valores reales observados.
+- El resultado de KNN depende del número de vecinos y de las variables utilizadas.
+- La estandarización influye en el cálculo de distancias.
+- El método IQR puede identificar como atípicos valores que sean válidos en otros contextos.
+- La imputación puede producir edades decimales, que deben interpretarse como estimaciones numéricas.
 
-## 8. Adecuaciones realizadas
+## 10. Conclusión
 
-Como extensión del ejercicio original, se incorporaron dos atributos adicionales en `Dim_Tiempo`:
+La práctica permitió implementar un proceso de limpieza de datos utilizando Python y bibliotecas de análisis de datos.
 
-**Día de la semana (`dia_semana`):** permite identificar el día correspondiente a cada transacción.
+Mediante IQR fue posible identificar dos valores atípicos y tratarlos como valores faltantes. Posteriormente, KNN permitió estimar los datos ausentes sin eliminar registros.
 
-**Fin de semana (`es_fin_semana`):** permite distinguir entre días laborales y fines de semana.
+La comparación con media y mediana, así como la experimentación con diferentes valores de `k`, permitió observar cómo la selección del método afecta los resultados.
 
-También se incorporaron mejoras de visualización en consola y validaciones para comprobar que:
-
-- Se conservan las 500 transacciones.
-- No existen llaves foráneas sin asignar.
-- Los identificadores de transacción son únicos.
-- Los montos de venta se calculan correctamente.
-
-Estas adecuaciones facil
+Finalmente, los gráficos y las validaciones facilitaron la revisión del proceso, demostrando la importancia de preparar los datos antes de utilizarlos en análisis estadísticos o modelos de aprendizaje automático.
