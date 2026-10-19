@@ -1,0 +1,14 @@
+# Configuración local
+config.yaml
+.env
+.env.*
+
+# Entornos virtuales
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Archivos temporales
+*.log
+.DS_Store

@@ -1,0 +1,15 @@
+# Configuración de la Práctica 3
+
+limpieza:
+  metodo_outliers: "IQR"
+  multiplicador_iqr: 1.5
+  vecinos_knn: 2
+
+comparacion:
+  valores_k: [2, 3, 5]
+  comparar_media: true
+  comparar_mediana: true
+
+graficos:
+  generar: true
+  directorio: "graficos"
